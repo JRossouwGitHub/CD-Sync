@@ -143,10 +143,39 @@ wss.on('connection', (ws) => {
                     
                     break;
                 case 'leave':
+                    console.log('Received leave instruction:', data.payload)
                     if(!validateRequest(clients.get(ws))){
                         response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
                     } else {
-                        
+                        let lobbyID = data.payload.lobbyID
+                        let _player = players.filter(player => player.id === clients.get(ws))[0]
+                        if(
+                            lobbies.filter((lobby) => {
+                                if(lobby.players.filter(player => player.id === clients.get(ws)).length == 0){
+                                    return false
+                                }
+                                return true
+                            }).length == 0
+                        )
+                        {
+                            response = packageResponse(401, 'Invalid request.', 'Player must be in a lobby.')
+                        } else {
+                            let found = false
+                            lobbies.map((lobby) => {
+                                if(lobby.id === lobbyID){
+                                    found = true
+                                    lobby.players = lobby.players.filter((player) => player.id !== clients.get(ws))
+                                    if(lobby.players.length == 0){
+                                        lobbies = lobbies.filter((lobby) => lobby.id !== lobbyID)
+                                    }
+                                }
+                            })
+                            if(found) {
+                                response = packageResponse(200, _player.username + ' left the lobby.', lobbies)
+                            } else {
+                                response = packageResponse(401, 'Invalid request.', 'Lobby not found, please try again.')
+                            }
+                        }
                     }
                     broadcast(ws, response)
                     break;

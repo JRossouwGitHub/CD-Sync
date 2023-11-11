@@ -6,7 +6,7 @@ from threading import Thread
 
 async def handle_user_input(client):
     while True:
-        instruction = input("Enter an instruction ('register', 'create', 'lobbies', 'exit'): ")
+        instruction = input("Enter an instruction ('register', 'create', 'lobbies', 'join', 'leave', 'exit'): ")
         if instruction == 'exit':
             await client.websocket.close()
             break
@@ -27,6 +27,10 @@ async def handle_user_input(client):
             lobbyID = input("Enter a lobby ID: ")
             password = input("Enter a lobby password: ")
             await client.join(lobbyID, password)
+        
+        if instruction == 'leave':
+            lobbyID = input("Enter a lobby ID: ")
+            await client.leave(lobbyID)
 
 def thread_callback(arg, client):
     asyncio.run(handle_user_input(client))

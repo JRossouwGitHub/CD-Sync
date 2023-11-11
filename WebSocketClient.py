@@ -43,3 +43,7 @@ class WebSocketClient:
     async def join(self, lobbyID, password):
         message = json.dumps({"event": "join", "payload": {"lobbyID": lobbyID, "password": password}})
         await self.send(message)
+
+    async def leave(self, lobbyID):
+        message = json.dumps({"event": "leave", "payload": {"lobbyID": lobbyID}})
+        await self.send(message)
