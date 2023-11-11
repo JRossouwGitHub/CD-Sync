@@ -108,7 +108,7 @@ wss.on('connection', (ws) => {
                 case 'register':
                     debug('Received register instruction:', data.payload)
                     if(validateRequest(clients.get(ws))){
-                        response = packageResponse(400, 'Invalid request.', 'Client cannot be registered more than once.')
+                        response = packageResponse(401, 'Invalid request.', 'Client cannot be registered more than once.')
                     } else {
                         const player = {
                             id: clients.get(ws),
@@ -129,7 +129,7 @@ wss.on('connection', (ws) => {
                 case 'create':
                     debug('Received create instruction:', data.payload)
                     if(!validateRequest(clients.get(ws))){
-                        response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
+                        response = packageResponse(401, 'Unauthorized request.', 'Requests must be made from registed clients.')
                     } else {
                         players.map((player) => {
                             if(player.id === clients.get(ws)){
@@ -150,7 +150,7 @@ wss.on('connection', (ws) => {
                 case 'lobbies':
                     debug('Received lobbies instruction:', data.payload)
                     if(!validateRequest(clients.get(ws))){
-                        response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
+                        response = packageResponse(401, 'Unauthorized request.', 'Requests must be made from registed clients.')
                     } else {
                         response = packageResponse(200, 'List of lobbies.', lobbies)
                     }
@@ -160,14 +160,14 @@ wss.on('connection', (ws) => {
                     debug('Received join instruction:', data.payload)
                     try{
                         if(!validateRequest(clients.get(ws))){
-                            response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
+                            response = packageResponse(401, 'Unauthorized request.', 'Requests must be made from registed clients.')
                             broadcast(ws, response)
                         } else {
                             let lobbyID = data.payload.lobbyID
                             let lobbyPassword = data.payload.password
                             let _player = players.filter(player => player.id === clients.get(ws))[0]
                             if(lobbies.filter(lobby => lobby.id === lobbyID).length == 0){
-                                response = packageResponse(401, 'Invalid request.', 'Lobby not found, please try again.')
+                                response = packageResponse(400, 'Invalid request.', 'Lobby not found, please try again.')
                                 broadcast(ws, response)
                             } else {
                                 if(
@@ -178,7 +178,7 @@ wss.on('connection', (ws) => {
                                         return false
                                     }).length == 1
                                 ){
-                                    response = packageResponse(401, 'Invalid request.', 'Player already in lobby, please leave the lobby before joining another.')
+                                    response = packageResponse(400, 'Invalid request.', 'Player already in lobby, please leave the lobby before joining another.')
                                     broadcast(ws, response)
                                 } else {
                                     let joined = false
@@ -193,7 +193,7 @@ wss.on('connection', (ws) => {
                                         broadcast(ws, response, lobbyID)
                                     } 
                                     else {
-                                        response = packageResponse(401, 'Invalid request.', 'Password is incorrect.')
+                                        response = packageResponse(400, 'Invalid request.', 'Password is incorrect.')
                                         broadcast(ws, response)
                                     }
                                 }
@@ -207,7 +207,7 @@ wss.on('connection', (ws) => {
                 case 'leave':
                     debug('Received leave instruction:', data.payload)
                     if(!validateRequest(clients.get(ws))){
-                        response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
+                        response = packageResponse(401, 'Unauthorized request.', 'Requests must be made from registed clients.')
                         broadcast(ws, response)
                     } else {
                         let lobbyID = data.payload.lobbyID
@@ -221,7 +221,7 @@ wss.on('connection', (ws) => {
                             }).length == 0
                         )
                         {
-                            response = packageResponse(401, 'Invalid request.', 'Player must be in a lobby.')
+                            response = packageResponse(400, 'Invalid request.', 'Player must be in a lobby.')
                             broadcast(ws, response)
                         } else {
                             let found = false
@@ -238,7 +238,7 @@ wss.on('connection', (ws) => {
                                 response = packageResponse(200, _player.username + ' left the lobby.', lobbies)
                                 broadcast(ws, response, lobbyID)
                             } else {
-                                response = packageResponse(401, 'Invalid request.', 'Lobby not found, please try again.')
+                                response = packageResponse(400, 'Invalid request.', 'Lobby not found, please try again.')
                                 broadcast(ws, response)
                             }
                         }
@@ -247,7 +247,7 @@ wss.on('connection', (ws) => {
                 default:
                     debug('Received an unknown instruction:', data.event)
                     if(!validateRequest(clients.get(ws))){
-                        response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
+                        response = packageResponse(401, 'Unauthorized request.', 'Requests must be made from registed clients.')
                     } else {
                         response = packageResponse(400, 'Invalid request.', 'Unknown instruction event.')
                     }
@@ -256,7 +256,7 @@ wss.on('connection', (ws) => {
             }
         } catch (error) {
             if(!validateRequest(clients.get(ws))){
-                response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
+                response = packageResponse(401, 'Unauthorized request.', 'Requests must be made from registed clients.')
             } else {
                 response = packageResponse(500, 'Internal server error.', {error: error})
             }
