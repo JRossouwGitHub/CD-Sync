@@ -32,19 +32,20 @@ const packageResponse = (status, message, data = null) => {
     return JSON.stringify(response)
 }
 
-const broadcast = (ws, message, global = false) => {
-    if(global){
+const broadcast = (ws, message, lobbyID = null) => {
+    ws.send(message)
+    if(lobbyID){
         lobbies.map(lobby => {
-            if(lobby.players.filter((player) => player.id == clients.get(ws)).length == 1){
+            if(lobby.id == lobbyID){
                 lobby.players.map(player => {
                     let targetClient = Array.from(clients.entries()).find(([_ws, id]) => id === player.id);
-                    targetClient[0].send(message)
+                    if(targetClient[0]){
+                        targetClient[0].send(message)
+                    }
                 })
             }
         })
-    } else {
-        ws.send(message)
-    }
+    } 
     console.log('Broadcasted message:', message)
 }
 
@@ -112,10 +113,13 @@ wss.on('connection', (ws) => {
                     try{
                         if(!validateRequest(clients.get(ws))){
                             response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
+                            broadcast(ws, response)
                         } else {
                             let lobbyID = data.payload.lobbyID
+                            let _player = players.filter(player => player.id === clients.get(ws))[0]
                             if(lobbies.filter(lobby => lobby.id === lobbyID).length == 0){
                                 response = packageResponse(401, 'Invalid request.', 'Lobby not found, please try again.')
+                                broadcast(ws, response)
                             } else {
                                 if(
                                     lobbies.filter((lobby) => {
@@ -126,17 +130,18 @@ wss.on('connection', (ws) => {
                                     }).length == 1
                                 ){
                                     response = packageResponse(401, 'Invalid request.', 'Player already in lobby, please leave the lobby before joining another.')
+                                    broadcast(ws, response)
                                 } else {
                                     lobbies.map((lobby) => {
                                         if(lobby.id === lobbyID){
                                             lobby.players.push(players.filter(player => player.id === clients.get(ws))[0])
                                         }
                                     })
-                                    response = packageResponse(200, 'Lobby joined.', lobbies)
+                                    response = packageResponse(200, _player.username + ' joined the lobby.', lobbies)
+                                    broadcast(ws, response, lobbyID)
                                 }
                             }
                         }
-                        broadcast(ws, response, true)
                     } catch(err){
                         console.log(err)
                     }
@@ -146,6 +151,7 @@ wss.on('connection', (ws) => {
                     console.log('Received leave instruction:', data.payload)
                     if(!validateRequest(clients.get(ws))){
                         response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
+                        broadcast(ws, response)
                     } else {
                         let lobbyID = data.payload.lobbyID
                         let _player = players.filter(player => player.id === clients.get(ws))[0]
@@ -159,6 +165,7 @@ wss.on('connection', (ws) => {
                         )
                         {
                             response = packageResponse(401, 'Invalid request.', 'Player must be in a lobby.')
+                            broadcast(ws, response)
                         } else {
                             let found = false
                             lobbies.map((lobby) => {
@@ -172,12 +179,13 @@ wss.on('connection', (ws) => {
                             })
                             if(found) {
                                 response = packageResponse(200, _player.username + ' left the lobby.', lobbies)
+                                broadcast(ws, response, lobbyID)
                             } else {
                                 response = packageResponse(401, 'Invalid request.', 'Lobby not found, please try again.')
+                                broadcast(ws, response)
                             }
                         }
                     }
-                    broadcast(ws, response)
                     break;
                 default:
                     console.log('Received an unknown instruction:', data.event)
