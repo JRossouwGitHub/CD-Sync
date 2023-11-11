@@ -28,6 +28,10 @@ class WebSocketClient:
     async def send(self, message):
         await self.websocket.send(message)
 
+    async def pong(self):
+        message = json.dumps({"event": "pong", "payload": {}})
+        await self.websocket.send(message)
+
     async def register(self, username):
         message = json.dumps({"event": "register", "payload": {"username": username}})
         await self.send(message)

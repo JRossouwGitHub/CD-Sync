@@ -46,10 +46,11 @@ async def main():
         if(status == 200):
             print()
             print(f"Success. {message} {data}")
+        elif(status == 1):
+            await client.pong()
         else:
             print()
             print(f"Error {status}. {message} {data}")
-        print()
 
     await client.on('broadcast', handle_broadcast_message)
 

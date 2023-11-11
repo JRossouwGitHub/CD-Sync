@@ -2,9 +2,16 @@ const WebSocket = require('ws')
 const wss = new WebSocket.Server({ port: 5500 }) // Set the desired port
 const uuid = require('uuid')
 const clients = new Map()
+const logDebug = false
 
 let players = []
 let lobbies = []
+
+const debug = (message) => {
+    if(logDebug){
+        console.log(message)
+    }
+}
 
 const validateRequest = (clientID) => {
     if(players.filter(player => player.id === clientID).length === 1) {
@@ -46,32 +53,73 @@ const broadcast = (ws, message, lobbyID = null) => {
             }
         })
     } 
-    console.log('Broadcasted message:', message)
+    debug('Broadcasted message:', message)
 }
+
+const ping = () => {
+    for(let i = 0; i < lobbies.length; i++){
+        let lobby = lobbies[i]
+        for(let j = 0; j < lobby.players.length; j++){
+            let player = lobby.players[j]
+            let targetClient = Array.from(clients.entries()).find(([_ws, id]) => id === player.id);
+            if(targetClient[0]){
+                player.ping.start = Date.now()
+                let message = packageResponse(1, 'Ping.', player)
+                targetClient[0].send(message)
+            }
+        }
+    }
+}
+
+setInterval(() => {
+    ping()
+}, 100)
 
 wss.on('connection', (ws) => {
     const clientID = uuid.v4()
-    console.log('Client connected, ID:', clientID)
+    debug('Client connected, ID:', clientID)
     clients.set(ws, clientID)
 
     response = packageResponse(200, 'Connected.', 'Client connected successfully.')
     broadcast(ws, response)
 
     ws.on('message', (message) => {
-        console.log('Received message from client:', clients.get(ws))
+        debug('Received message from client:', clients.get(ws))
         try {
             const data = JSON.parse(message)
             let response
             switch (data.event) {
+                case 'pong':
+                    debug('Received pong instruction:', data.payload)
+                    for(let i = 0; i < lobbies.length; i++){
+                        let lobby = lobbies[i]
+                        for(let j = 0; j < lobby.players.length; j++){
+                            let player = lobby.players[j]
+                            player.ping.end = Date.now()
+                            let pingDelta = player.ping.end - player.ping.start
+                            player.pings.push(pingDelta)
+                            if(player.pings.length > 10){
+                                player.pings.shift()
+                            }
+                            player.ping.time = (player.pings.reduce((a, b) => a + b, 0) / player.pings.length)
+                        }
+                    }
+                    break;
                 case 'register':
-                    console.log('Received register instruction:', data.payload)
+                    debug('Received register instruction:', data.payload)
                     if(validateRequest(clients.get(ws))){
                         response = packageResponse(400, 'Invalid request.', 'Client cannot be registered more than once.')
                     } else {
                         const player = {
                             id: clients.get(ws),
                             username: data.payload.username,
-                            owner: false
+                            owner: false,
+                            pings: [],
+                            ping: {
+                                start: 0,
+                                end: 0,
+                                time: 0
+                            }
                         }
                         players.push(player)
                         response = packageResponse(200, 'Player registered.', player)
@@ -79,7 +127,7 @@ wss.on('connection', (ws) => {
                     broadcast(ws, response)
                     break;
                 case 'create':
-                    console.log('Received create instruction:', data.payload)
+                    debug('Received create instruction:', data.payload)
                     if(!validateRequest(clients.get(ws))){
                         response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
                     } else {
@@ -100,7 +148,7 @@ wss.on('connection', (ws) => {
                     broadcast(ws, response)
                     break;
                 case 'lobbies':
-                    console.log('Received lobbies instruction:', data.payload)
+                    debug('Received lobbies instruction:', data.payload)
                     if(!validateRequest(clients.get(ws))){
                         response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
                     } else {
@@ -109,13 +157,14 @@ wss.on('connection', (ws) => {
                     broadcast(ws, response)
                     break;
                 case 'join':
-                    console.log('Received join instruction:', data.payload)
+                    debug('Received join instruction:', data.payload)
                     try{
                         if(!validateRequest(clients.get(ws))){
                             response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
                             broadcast(ws, response)
                         } else {
                             let lobbyID = data.payload.lobbyID
+                            let lobbyPassword = data.payload.password
                             let _player = players.filter(player => player.id === clients.get(ws))[0]
                             if(lobbies.filter(lobby => lobby.id === lobbyID).length == 0){
                                 response = packageResponse(401, 'Invalid request.', 'Lobby not found, please try again.')
@@ -132,23 +181,31 @@ wss.on('connection', (ws) => {
                                     response = packageResponse(401, 'Invalid request.', 'Player already in lobby, please leave the lobby before joining another.')
                                     broadcast(ws, response)
                                 } else {
+                                    let joined = false
                                     lobbies.map((lobby) => {
-                                        if(lobby.id === lobbyID){
+                                        if(lobby.id === lobbyID && lobby.password === lobbyPassword){
                                             lobby.players.push(players.filter(player => player.id === clients.get(ws))[0])
+                                            joined = true
                                         }
                                     })
-                                    response = packageResponse(200, _player.username + ' joined the lobby.', lobbies)
-                                    broadcast(ws, response, lobbyID)
+                                    if(joined){
+                                        response = packageResponse(200, _player.username + ' joined the lobby.', lobbies)
+                                        broadcast(ws, response, lobbyID)
+                                    } 
+                                    else {
+                                        response = packageResponse(401, 'Invalid request.', 'Password is incorrect.')
+                                        broadcast(ws, response)
+                                    }
                                 }
                             }
                         }
                     } catch(err){
-                        console.log(err)
+                        debug(err)
                     }
                     
                     break;
                 case 'leave':
-                    console.log('Received leave instruction:', data.payload)
+                    debug('Received leave instruction:', data.payload)
                     if(!validateRequest(clients.get(ws))){
                         response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
                         broadcast(ws, response)
@@ -188,7 +245,7 @@ wss.on('connection', (ws) => {
                     }
                     break;
                 default:
-                    console.log('Received an unknown instruction:', data.event)
+                    debug('Received an unknown instruction:', data.event)
                     if(!validateRequest(clients.get(ws))){
                         response = packageResponse(401, 'Invalid request.', 'Requests must be made from registed clients.')
                     } else {
@@ -208,7 +265,15 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('close', () => {
+        lobbies.map((lobby) => {
+            if(lobby.players.filter((player) => player.id === clients.get(ws)).length == 1){
+                lobby.players = lobby.players.filter((player) => player.id !== clients.get(ws))
+                if(lobby.players.length == 0){
+                    lobbies = lobbies.filter((_lobby) => _lobby.id !== lobby.id)
+                }
+            }
+        })
         clients.delete(ws)
-        console.log('Client disconnected')
+        debug('Client disconnected')
     });
 });
