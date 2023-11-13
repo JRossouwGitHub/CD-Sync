@@ -51,3 +51,7 @@ class WebSocketClient:
     async def leave(self, lobbyID):
         message = json.dumps({"event": "leave", "payload": {"lobbyID": lobbyID}})
         await self.send(message)
+    
+    async def cast(self, lobbyID, ability):
+        message = json.dumps({"event": "cast", "payload": {"lobbyID": lobbyID, "ability": ability}})
+        await self.send(message)

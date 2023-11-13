@@ -7,9 +7,9 @@ const logDebug = false
 let players = []
 let lobbies = []
 
-const debug = (message) => {
+const debug = (message, data = null) => {
     if(logDebug){
-        console.log(message)
+        console.log(message, data)
     }
 }
 
@@ -54,6 +54,28 @@ const broadcast = (ws, message, lobbyID = null) => {
         })
     } 
     debug('Broadcasted message:', message)
+}
+
+const SyncCooldown = (lobbyID, _player, ability) => {
+    lobbies.map(lobby => {
+        if(lobby.id == lobbyID){
+            lobby.players.map(player => {
+                if(player.id != _player.id){
+                    let targetClient = Array.from(clients.entries()).find(([_ws, id]) => id === player.id && player.id);
+                    if(targetClient[0]){
+                        _player[ability].cooldown -= ((_player.ping.time / 1000) + (player.ping.time / 1000))
+                        let sync = {
+                            player: _player,
+                            ability: _player[ability]
+                        }
+                        let message = packageResponse(200, 'Sync Cooldown.', sync)
+                        targetClient[0].send(message)
+                        debug('Broadcasted sync message: ', message)
+                    }
+                }
+            })
+        }
+    })
 }
 
 const ping = () => {
@@ -119,6 +141,37 @@ wss.on('connection', (ws) => {
                                 start: 0,
                                 end: 0,
                                 time: 0
+                            },
+                            enabled: true,
+                            ability1: {
+                                key: data.payload.ability1?.key ?? 'Q',
+                                cooldown: data.payload.ability1?.cooldown ?? 1.5,
+                                enabled: true
+                            },
+                            ability2: {
+                                key: data.payload.ability2?.key ?? 'W',
+                                cooldown: data.payload.ability2?.cooldown ?? 3,
+                                enabled: true
+                            },
+                            ability3: {
+                                key: data.payload.ability3?.key ?? 'E',
+                                cooldown: data.payload.ability3?.cooldown ?? 7,
+                                enabled: true
+                            },
+                            ability4: {
+                                key: data.payload.ability4?.key ?? 'R',
+                                cooldown: data.payload.ability4?.cooldown ?? 15,
+                                enabled: true
+                            },
+                            ability5: {
+                                key: data.payload.ability5?.key ?? 'D',
+                                cooldown: data.payload.ability5?.cooldown ?? 23,
+                                enabled: true
+                            },
+                            ability6: {
+                                key: data.payload.ability6?.key ?? 'F',
+                                cooldown: data.payload.ability6?.cooldown ?? 12,
+                                enabled: true
                             }
                         }
                         players.push(player)
@@ -189,7 +242,8 @@ wss.on('connection', (ws) => {
                                         }
                                     })
                                     if(joined){
-                                        response = packageResponse(200, _player.username + ' joined the lobby.', lobbies)
+                                        let _lobby = lobbies.filter((lobby) => lobby.id === lobbyID)
+                                        response = packageResponse(200, _player.username + ' joined the lobby.', _lobby)
                                         broadcast(ws, response, lobbyID)
                                     } 
                                     else {
@@ -202,7 +256,6 @@ wss.on('connection', (ws) => {
                     } catch(err){
                         debug(err)
                     }
-                    
                     break;
                 case 'leave':
                     debug('Received leave instruction:', data.payload)
@@ -235,8 +288,58 @@ wss.on('connection', (ws) => {
                                 }
                             })
                             if(found) {
-                                response = packageResponse(200, _player.username + ' left the lobby.', lobbies)
+                                let _lobby = lobbies.filter((lobby) => lobby.id === lobbyID)
+                                response = packageResponse(200, _player.username + ' left the lobby.', _lobby)
                                 broadcast(ws, response, lobbyID)
+                            } else {
+                                response = packageResponse(400, 'Invalid request.', 'Lobby not found, please try again.')
+                                broadcast(ws, response)
+                            }
+                        }
+                    }
+                    break;
+                case 'cast':
+                    debug('Received cooldown instruction:', data.payload)
+
+                    if(!validateRequest(clients.get(ws))){
+                        debug('Invalid cast request')
+                        response = packageResponse(401, 'Unauthorized request.', 'Requests must be made from registed clients.')
+                        broadcast(ws, response)
+                    } else {
+                        let lobbyID = data.payload.lobbyID
+                        let ability = data.payload.ability
+                        let _player = players.filter(player => player.id === clients.get(ws))[0]
+                        debug('Player: ', _player)
+                        if(
+                            lobbies.filter((lobby) => {
+                                if(lobby.players.filter(player => player.id === clients.get(ws)).length == 0){
+                                    return false
+                                }
+                                return true
+                            }).length == 0
+                        )
+                        {
+                            debug('Player must be in a lobby')
+                            response = packageResponse(400, 'Invalid request.', 'Player must be in a lobby.')
+                            broadcast(ws, response)
+                        } else {
+                            let found = false
+                            let _cdPlayer
+                            lobbies.map((lobby) => {
+                                if(lobby.id === lobbyID){
+                                    found = true
+                                    lobby.players.map((player) => {
+                                        if(player.id == _player.id && player.enabled == true && player[ability].enabled == true){
+                                            _cdPlayer = player
+                                            debug('Found player: ', _cdPlayer)
+                                        }
+                                    })
+                                }
+                            })
+                            if(found) {
+                                debug('Starting Sync Event')
+                                SyncCooldown(lobbyID, _cdPlayer, ability)
+                                debug('Ended Sync Event')
                             } else {
                                 response = packageResponse(400, 'Invalid request.', 'Lobby not found, please try again.')
                                 broadcast(ws, response)

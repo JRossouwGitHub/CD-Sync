@@ -6,7 +6,7 @@ from threading import Thread
 
 async def handle_user_input(client):
     while True:
-        instruction = input("Enter an instruction ('register', 'create', 'lobbies', 'join', 'leave', 'exit'): ")
+        instruction = input("Enter an instruction ('register', 'create', 'lobbies', 'join', 'leave', 'cast', 'exit'): ")
         if instruction == 'exit':
             await client.websocket.close()
             break
@@ -31,6 +31,11 @@ async def handle_user_input(client):
         if instruction == 'leave':
             lobbyID = input("Enter a lobby ID: ")
             await client.leave(lobbyID)
+
+        if instruction == 'cast':
+            lobbyID = input("Enter a lobby ID: ")
+            ability = input("Enter an ability ('ability1', 'ability2', 'ability3', 'ability4', 'ability5', 'ability6'): ")
+            await client.cast(lobbyID, ability)
 
 def thread_callback(arg, client):
     asyncio.run(handle_user_input(client))
