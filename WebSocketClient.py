@@ -55,3 +55,7 @@ class WebSocketClient:
     async def cast(self, lobbyID, ability):
         message = json.dumps({"event": "cast", "payload": {"lobbyID": lobbyID, "ability": ability}})
         await self.send(message)
+
+    async def toggle(self, lobbyID, player):
+        message = json.dumps({"event": "toggle", "payload": {"lobbyID": lobbyID, "player": player}})
+        await self.send(message)

@@ -36,6 +36,11 @@ async def handle_user_input(client):
             lobbyID = input("Enter a lobby ID: ")
             ability = input("Enter an ability ('ability1', 'ability2', 'ability3', 'ability4', 'ability5', 'ability6'): ")
             await client.cast(lobbyID, ability)
+        
+        if instruction == 'toggle':
+            lobbyID = input("Enter a lobby ID: ")
+            player = input("Enter an player: ")
+            await client.toggle(lobbyID, player)
 
 def thread_callback(arg, client):
     asyncio.run(handle_user_input(client))
