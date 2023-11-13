@@ -70,7 +70,7 @@ const SyncCooldown = (lobbyID, _player, ability) => {
                 if(player.id != _player.id){
                     let targetClient = Array.from(clients.entries()).find(([_ws, id]) => id === player.id && player.id);
                     if(targetClient[0]){
-                        _player[ability].cooldown -= ((_player.ping.time / 1000) + (_player.ping.time / 1000))
+                        _player[ability].cooldown -= ((_player.ping.time / 1000) + (player.ping.time / 1000))
                         let sync = {
                             player: _player,
                             ability: _player[ability]
