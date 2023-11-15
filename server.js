@@ -2,7 +2,7 @@ const WebSocket = require('ws')
 const wss = new WebSocket.Server({ port: 5500 }) // Set the desired port
 const uuid = require('uuid')
 const clients = new Map()
-const logDebug = false
+const logDebug = true
 const logError = true
 
 let players = []

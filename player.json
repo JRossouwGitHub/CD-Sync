@@ -1,0 +1,41 @@
+{
+    "username": "Odious",
+    "owner": 0,
+    "pings": [],
+    "ping": {
+        "start": 0,
+        "end": 0,
+        "time": 0
+    },
+    "enabled": 1,
+    "ability1": {
+        "key": "Q",
+        "cooldown": 1,
+        "enabled": 1
+    },
+    "ability2": {
+        "key": "W",
+        "cooldown": 3,
+        "enabled": 1
+    },
+    "ability3": {
+        "key": "E",
+        "cooldown": 15,
+        "enabled": 1
+    },
+    "ability4": {
+        "key": "R",
+        "cooldown": 23,
+        "enabled": 1
+    },
+    "ability5": {
+        "key": "D",
+        "cooldown": 11,
+        "enabled": 1
+    },
+    "ability6": {
+        "key": "F",
+        "cooldown": 13,
+        "enabled": 1
+    }
+}
