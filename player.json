@@ -1,13 +1,5 @@
 {
     "username": "Odious",
-    "owner": 0,
-    "pings": [],
-    "ping": {
-        "start": 0,
-        "end": 0,
-        "time": 0
-    },
-    "enabled": 1,
     "ability1": {
         "key": "Q",
         "cooldown": 1,

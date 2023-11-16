@@ -4,9 +4,18 @@ const uuid = require('uuid')
 const clients = new Map()
 const logDebug = true
 const logError = true
+const adjectives = require('./adjectives.json').data
+const nouns = require('./nouns.json').data
 
 let players = []
-let lobbies = []
+let lobbies = [
+    {
+        id: uuid.v4(),
+        name: "Sanctuary Main",
+        password: "",
+        players: []
+    }
+]
 
 const debug = (message, data = null) => {
     if(logDebug){
@@ -144,9 +153,13 @@ wss.on('connection', (ws) => {
                         if(validateRequest(clients.get(ws))){
                             response = packageResponse(401, 'Invalid request.', 'Client cannot be registered more than once.')
                         } else {
+                            let _adjective = adjectives[Math.floor(Math.random() * adjectives.length)]
+                            _adjective = _adjective.charAt(0).toUpperCase() + _adjective.slice(1)
+                            let _noun = nouns[Math.floor(Math.random() * nouns.length)]
+                            _noun = _noun.charAt(0).toUpperCase() + _noun.slice(1)
                             const player = {
                                 id: clients.get(ws),
-                                username: data.payload.username,
+                                username: data.payload.username ?? (_adjective + _noun),
                                 owner: 0,
                                 pings: [],
                                 ping: {

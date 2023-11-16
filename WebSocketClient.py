@@ -21,7 +21,7 @@ class WebSocketClient:
             payload = data.get('payload')
             if event and event in self.event_handlers:
                 handler = self.event_handlers[event]
-                await handler(payload)
+                await handler(self, payload)
             else:
                 print(f"Received unknown event: {event}")
 
@@ -32,8 +32,8 @@ class WebSocketClient:
         message = json.dumps({"event": "pong", "payload": {}})
         await self.websocket.send(message)
 
-    async def register(self, username):
-        message = json.dumps({"event": "register", "payload": {"username": username}})
+    async def register(self, user_payload):
+        message = json.dumps({"event": "register", "payload": user_payload})
         await self.send(message)
 
     async def create(self, name, password):
