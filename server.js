@@ -1,5 +1,3 @@
-//const WebSocket = require('ws')
-//const wss = new WebSocket.Server({ port: 5500 }) // Set the desired port
 const { Server } = require("socket.io");
 const express = require("express");
 const { createServer } = require("http");
@@ -15,14 +13,7 @@ app.use(bodyParser.json())
 const httpServer = createServer(app);
 
 let players = []
-let lobbies = [
-    // {
-    //     id: uuid.v4(),
-    //     name: "Sanctuary Main",
-    //     password: "",
-    //     players: []
-    // }
-]
+let lobbies = []
 
 const debug = (message, data = null) => {
     if(logDebug){
