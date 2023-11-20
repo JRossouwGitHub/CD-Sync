@@ -394,7 +394,7 @@ io.on('connection', (client) => {
                     }
                     break;
                 case 'toggle':
-                    debug('Received an unknown instruction:', data.payload)
+                    debug('Received a toggle instruction:', data.payload)
                     try{
                         if(!validateRequest(clients.get(client))){
                             response = packageResponse(401, 'Unauthorized request.', 'Requests must be made from registed clients.')
@@ -430,6 +430,27 @@ io.on('connection', (client) => {
                             }
                         }
                         broadcast(client, response)
+                    } catch(e){
+                        error(e)
+                    }
+                    break;
+                case 'start':
+                    debug('Received a start instruction:', data.payload)
+                    try{
+                        if(!validateRequest(clients.get(client))){
+                            response = packageResponse(401, 'Unauthorized request.', 'Requests must be made from registed clients.')
+                            broadcast(client, response)
+                        } else {
+                            let lobbyID = data.payload.lobbyID
+                            if(lobbies.filter(lobby => lobby.id === lobbyID).length == 0){
+                                response = packageResponse(400, 'Invalid request.', 'Lobby not found, please try again.')
+                                broadcast(client, response)
+                            } else {
+                                let _lobby = lobbies.filter((lobby) => lobby.id === lobbyID)[0]
+                                response = packageResponse(200, 'Lobby started.', _lobby)
+                                broadcast(client, response, lobbyID)
+                            }
+                        }
                     } catch(e){
                         error(e)
                     }
