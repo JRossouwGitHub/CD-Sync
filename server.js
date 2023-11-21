@@ -131,7 +131,6 @@ io.on('connection', (client) => {
     broadcast(client, response)
 
     client.on('message', (message) => {
-        debug('Received message from client:', clients.get(client))
         try {
             const data = JSON.parse(message)
             let response
@@ -404,13 +403,15 @@ io.on('connection', (client) => {
                     try{
                         if(!validateRequest(clients.get(client))){
                             response = packageResponse(401, 'Unauthorized request.', 'Requests must be made from registed clients.')
+                            broadcast(client, response)
                         } else {
                             let lobbyID = data.payload.lobbyID
-                            let _player = JSON.parse(data.payload.player.replace(/'/g, '\"'))
+                            let _player = data.payload.player
                             let _owner = players.filter(player => player.id == clients.get(client))[0]
                             let _lobby = lobbies.filter(lobby => lobby.id == lobbyID)[0]
                             if(_owner.owner == false){
                                 response = packageResponse(400, 'Invalid request.', 'Only the lobby owner can toggle cooldowns.')
+                                broadcast(client, response)
                             } else {
                                 let toggled = false
                                 if(_lobby.players.filter(player => player.id == _player.id).length == 1){
@@ -428,14 +429,15 @@ io.on('connection', (client) => {
                                     })
                                 } 
                                 if(toggled){
-                                    response = packageResponse(200, 'Success.', 'Toggled cooldowns on ' + _player.username)
+                                    response = packageResponse(200, 'Toggled cooldowns on ' + _player.username, _lobby)
+                                    broadcast(client, response, lobbyID)
                                 } 
                                 else {
                                     response = packageResponse(400, 'Invalid request.', 'Unable to toggle cooldowns.')
+                                    broadcast(client, response)
                                 }
                             }
                         }
-                        broadcast(client, response)
                     } catch(e){
                         error(e)
                     }
