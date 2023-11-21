@@ -3,7 +3,7 @@ const express = require("express");
 const { createServer } = require("http");
 const uuid = require('uuid')
 const clients = new Map()
-const logDebug = false
+const logDebug = true
 const logError = true
 const adjectives = require('./adjectives.json').data
 const nouns = require('./nouns.json').data
@@ -137,7 +137,7 @@ io.on('connection', (client) => {
             let response
             switch (data.event) {
                 case 'pong':
-                    debug('Received pong instruction:', data.payload)
+                    //debug('Received pong instruction:', data.payload)
                     try{
                         for(let i = 0; i < lobbies.length; i++){
                             let lobby = lobbies[i]
@@ -180,31 +180,37 @@ io.on('connection', (client) => {
                                 ability1: {
                                     key: data.payload.ability1?.key ?? 'Q',
                                     cooldown: data.payload.ability1?.cooldown ?? 1.5,
+                                    cooldownMax: data.payload.ability1?.cooldown ?? 1.5,
                                     enabled: true
                                 },
                                 ability2: {
                                     key: data.payload.ability2?.key ?? 'W',
                                     cooldown: data.payload.ability2?.cooldown ?? 3,
+                                    cooldownMax: data.payload.ability2?.cooldown ?? 3,
                                     enabled: true
                                 },
                                 ability3: {
                                     key: data.payload.ability3?.key ?? 'E',
                                     cooldown: data.payload.ability3?.cooldown ?? 7,
+                                    cooldownMax: data.payload.ability3?.cooldown ?? 7,
                                     enabled: true
                                 },
                                 ability4: {
                                     key: data.payload.ability4?.key ?? 'R',
                                     cooldown: data.payload.ability4?.cooldown ?? 15,
+                                    cooldownMax: data.payload.ability4?.cooldown ?? 15,
                                     enabled: true
                                 },
                                 ability5: {
                                     key: data.payload.ability5?.key ?? 'D',
                                     cooldown: data.payload.ability5?.cooldown ?? 23,
+                                    cooldownMax: data.payload.ability5?.cooldown ?? 23,
                                     enabled: true
                                 },
                                 ability6: {
                                     key: data.payload.ability6?.key ?? 'F',
                                     cooldown: data.payload.ability6?.cooldown ?? 12,
+                                    cooldownMax: data.payload.ability6?.cooldown ?? 12,
                                     enabled: true
                                 }
                             }
@@ -487,6 +493,7 @@ io.on('connection', (client) => {
                 }
             }
         })
+        players = players.filter((player) => player.id != clients.get(client))
         response = packageResponse(200, 'Player left the lobby.', _lobby)
         broadcast(client, response, _lobby.id)
         clients.delete(client)
