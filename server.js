@@ -159,7 +159,50 @@ io.on('connection', (client) => {
                     debug('Received register instruction:', data.payload)
                     try{
                         if(validateRequest(clients.get(client))){
-                            response = packageResponse(401, 'Invalid request.', 'Client cannot be registered more than once.')
+                            let _player = players.filter(player => player.id === clients.get(client))[0]
+                            if(_player){
+                                _player.username = data.payload.username
+                                _player.ability1 = {
+                                    key: data.payload.ability1?.key ?? 'Q',
+                                    cooldown: data.payload.ability1?.cooldown ?? 1.5,
+                                    cooldownMax: data.payload.ability1?.cooldown ?? 1.5,
+                                    enabled: true
+                                }
+                                _player.ability2 = {
+                                    key: data.payload.ability2?.key ?? 'W',
+                                    cooldown: data.payload.ability2?.cooldown ?? 3,
+                                    cooldownMax: data.payload.ability2?.cooldown ?? 3,
+                                    enabled: true
+                                }
+                                _player.ability3 = {
+                                    key: data.payload.ability3?.key ?? 'E',
+                                    cooldown: data.payload.ability3?.cooldown ?? 7,
+                                    cooldownMax: data.payload.ability3?.cooldown ?? 7,
+                                    enabled: true
+                                }
+                                _player.ability4 = {
+                                    key: data.payload.ability4?.key ?? 'R',
+                                    cooldown: data.payload.ability4?.cooldown ?? 15,
+                                    cooldownMax: data.payload.ability4?.cooldown ?? 15,
+                                    enabled: true
+                                }
+                                _player.ability5 = {
+                                    key: data.payload.ability5?.key ?? 'D',
+                                    cooldown: data.payload.ability5?.cooldown ?? 23,
+                                    cooldownMax: data.payload.ability5?.cooldown ?? 23,
+                                    enabled: true
+                                }
+                                _player.ability6 = {
+                                    key: data.payload.ability6?.key ?? 'F',
+                                    cooldown: data.payload.ability6?.cooldown ?? 12,
+                                    cooldownMax: data.payload.ability6?.cooldown ?? 12,
+                                    enabled: true
+                                }
+                                response = packageResponse(200, 'Player registered.', _player)
+                            } 
+                            else {
+                                response = packageResponse(401, 'Invalid request.', 'There was an issue registering the player.')
+                            }
                         } else {
                             let _adjective = adjectives[Math.floor(Math.random() * adjectives.length)]
                             _adjective = _adjective.charAt(0).toUpperCase() + _adjective.slice(1)
